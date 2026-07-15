@@ -15,9 +15,18 @@
       "init": {
         "title": "Departure Guardian",
         "menu_options": {
+          "discover": "Sugerir entidades automáticamente",
           "add_entity": "Añadir entidad a vigilar",
           "remove_entity": "Quitar entidad vigilada",
           "finish": "Guardar y salir"
+        }
+      },
+      "discover": {
+        "title": "Entidades sugeridas ({count} encontradas)",
+        "description": "Detectadas por tipo de sensor (puerta/ventana, consumo en W) entre tus integraciones instaladas. Selecciona las que quieras vigilar.",
+        "data": {
+          "binary_entities": "Sensores on/off (puertas, ventanas...)",
+          "power_entities": "Sensores de consumo (enchufes...)"
         }
       },
       "add_entity": {

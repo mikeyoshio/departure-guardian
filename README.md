@@ -25,7 +25,15 @@ Ajustes → Dispositivos y servicios → Añadir integración → Departure Guar
 
 1. Selecciona tu entidad `alarm_control_panel` (Prosegur u otra).
 2. Indica el servicio de notificación a usar (ej. `mobile_app_tu_movil`, sin el prefijo `notify.`).
-3. Desde las opciones de la integración, añade las entidades a vigilar:
+3. Desde las opciones de la integración, añade las entidades a vigilar. Hay dos formas:
+   - **Sugerir entidades automáticamente**: escanea las entidades ya expuestas por tus
+     integraciones instaladas (por `device_class`, no por nombre de integración) y te
+     propone sensores de puerta/ventana/apertura y sensores de consumo en W para que
+     elijas cuáles vigilar con un clic.
+   - **Añadir entidad a vigilar**: manual, para cualquier entidad que la sugerencia
+     automática no detecte.
+
+   Tipos de vigilancia:
    - **binary**: sensor on/off (horno, ventana, puerta). Se avisa si su estado coincide
      con el "estado problema" configurado (por defecto `on`).
    - **power**: sensor de consumo en W (enchufe Meross/Shelly/Tuya). Se avisa si supera

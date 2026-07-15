@@ -21,6 +21,7 @@ from .const import (
     KIND_BINARY,
     KIND_POWER,
 )
+from .discovery import discover_candidates
 
 
 class DepartureGuardianConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -62,7 +63,60 @@ class DepartureGuardianOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(self, user_input=None):
         return self.async_show_menu(
             step_id="init",
-            menu_options=["add_entity", "remove_entity", "finish"],
+            menu_options=["discover", "add_entity", "remove_entity", "finish"],
+        )
+
+    async def async_step_discover(self, user_input=None):
+        watched_ids = {w[CONF_ENTITY_ID] for w in self._watched}
+        binary_candidates, power_candidates = discover_candidates(
+            self.hass, watched_ids
+        )
+
+        if user_input is not None:
+            for entity_id in user_input.get("binary_entities", []):
+                state = self.hass.states.get(entity_id)
+                label = state.attributes.get("friendly_name", entity_id) if state else entity_id
+                self._watched.append(
+                    {
+                        CONF_ENTITY_ID: entity_id,
+                        CONF_KIND: KIND_BINARY,
+                        CONF_LABEL: label,
+                        CONF_PROBLEM_STATE: DEFAULT_PROBLEM_STATE,
+                    }
+                )
+            for entity_id in user_input.get("power_entities", []):
+                state = self.hass.states.get(entity_id)
+                label = state.attributes.get("friendly_name", entity_id) if state else entity_id
+                self._watched.append(
+                    {
+                        CONF_ENTITY_ID: entity_id,
+                        CONF_KIND: KIND_POWER,
+                        CONF_LABEL: label,
+                        CONF_THRESHOLD: DEFAULT_THRESHOLD,
+                    }
+                )
+            return await self.async_step_init()
+
+        schema = vol.Schema(
+            {
+                vol.Optional("binary_entities"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        include_entities=binary_candidates, multiple=True
+                    )
+                ),
+                vol.Optional("power_entities"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        include_entities=power_candidates, multiple=True
+                    )
+                ),
+            }
+        )
+        return self.async_show_form(
+            step_id="discover",
+            data_schema=schema,
+            description_placeholders={
+                "count": str(len(binary_candidates) + len(power_candidates))
+            },
         )
 
     async def async_step_add_entity(self, user_input=None):

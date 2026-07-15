@@ -15,9 +15,18 @@
       "init": {
         "title": "Departure Guardian",
         "menu_options": {
+          "discover": "Suggest entities automatically",
           "add_entity": "Add watched entity",
           "remove_entity": "Remove watched entity",
           "finish": "Save and exit"
+        }
+      },
+      "discover": {
+        "title": "Suggested entities ({count} found)",
+        "description": "Detected by sensor type (door/window, power draw) among your installed integrations. Pick the ones you want watched.",
+        "data": {
+          "binary_entities": "On/off sensors (doors, windows...)",
+          "power_entities": "Power sensors (plugs...)"
         }
       },
       "add_entity": {
