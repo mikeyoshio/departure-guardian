@@ -34,7 +34,14 @@ class DepartureGuardianStatusSensor(BinarySensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict:
-        return {"issues": self._coordinator.last_issues}
+        return {
+            "issues": self._coordinator.last_issues,
+            "statuses": self._coordinator.statuses,
+            "positions": self._coordinator.positions,
+            "map_camera": self._coordinator.map_camera,
+            "map_image": self._coordinator.map_image,
+            "config_entry_id": self._coordinator.entry.entry_id,
+        }
 
     async def async_added_to_hass(self) -> None:
         self._coordinator.async_add_listener(self.async_write_ha_state)

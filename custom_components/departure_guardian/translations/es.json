@@ -18,6 +18,7 @@
           "discover": "Sugerir entidades automáticamente",
           "add_entity": "Añadir entidad a vigilar",
           "remove_entity": "Quitar entidad vigilada",
+          "set_map": "Configurar plano",
           "finish": "Guardar y salir"
         }
       },
@@ -43,6 +44,14 @@
         "title": "Quitar entidad vigilada",
         "data": {
           "entity": "Entidad a quitar"
+        }
+      },
+      "set_map": {
+        "title": "Configurar plano ({count} cámaras de mapa detectadas)",
+        "description": "Elige la cámara de mapa de tu robot aspirador (si tu integración la expone) o sube un PNG de tu plano.",
+        "data": {
+          "map_camera": "Cámara de mapa detectada",
+          "map_upload": "Subir plano (PNG)"
         }
       }
     }

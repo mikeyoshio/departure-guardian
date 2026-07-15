@@ -1,0 +1,27 @@
+set_position:
+  name: Fijar posición en el mapa
+  description: Guarda la posición (x%, y%) de una entidad vigilada sobre el plano de Departure Guardian.
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: departure_guardian
+    entity_id:
+      required: true
+      selector:
+        entity: {}
+    x:
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: "%"
+    y:
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: "%"

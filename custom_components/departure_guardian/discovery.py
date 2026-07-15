@@ -33,3 +33,21 @@ def discover_candidates(
             power_candidates.append(state.entity_id)
 
     return binary_candidates, power_candidates
+
+
+def discover_map_cameras(hass: HomeAssistant) -> list[str]:
+    """Find camera entities that look like a vacuum-generated floor map.
+
+    Robot vacuum integrations that expose a room map (Roborock, Valetudo,
+    Xiaomi/Dreame...) do so as a `camera` entity carrying a
+    `calibration_points` attribute, a de-facto standard used by community
+    map cards. Eufy's own integration does not expose this today, so this
+    is naturally empty for Eufy-only setups.
+    """
+    candidates: list[str] = []
+    for state in hass.states.async_all("camera"):
+        if state.attributes.get("calibration_points") is not None:
+            candidates.append(state.entity_id)
+        elif "map" in state.entity_id.split(".", 1)[1]:
+            candidates.append(state.entity_id)
+    return candidates

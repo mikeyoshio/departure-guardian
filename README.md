@@ -40,8 +40,32 @@ Ajustes → Dispositivos y servicios → Añadir integración → Departure Guar
      el umbral configurado.
 
 Cada vez que la alarma pase a "arming" o se arme directamente, la integración revisa
-todas las entidades vigiladas y notifica si algo no cuadra. También expone un
-`binary_sensor` de estado con el detalle del último chequeo en sus atributos.
+todas las entidades vigiladas y notifica si algo no cuadra. El estado de cada entidad
+vigilada también se recalcula en vivo (no solo al armar), así que el mapa (ver abajo)
+siempre refleja la situación actual. El `binary_sensor` de estado expone el detalle del
+último chequeo en sus atributos.
+
+## Plano de la vivienda
+
+Desde las opciones de la integración → "Configurar plano" puedes:
+
+- **Usar el mapa de tu robot aspirador**, si tu integración lo expone como entidad
+  `camera` con el atributo `calibration_points` (Roborock, Valetudo, Xiaomi/Dreame...).
+  Departure Guardian detecta automáticamente estas cámaras. **Eufy Robovac no expone
+  este dato hoy**, así que no aparecerá en la lista si es tu único robot.
+- **Subir un PNG** de tu plano (una foto, un plano escaneado, o una captura del mapa de
+  la app de tu robot) como alternativa universal, funcione o no tu robot con HA.
+
+Para colocar las entidades sobre el plano, añade la card personalizada a un dashboard:
+
+```yaml
+type: custom:departure-guardian-map-card
+entity: binary_sensor.problema_al_salir   # el binary_sensor que crea la integración
+```
+
+En la card, pulsa "Editar posiciones", elige la entidad en el desplegable y haz clic
+sobre el punto del plano donde está — se guarda al momento. Cada entidad se pinta como
+un punto verde (todo bien) o rojo (problema detectado), actualizado en vivo.
 
 ## Licencia
 

@@ -24,3 +24,12 @@ ARMED_STATES = (
     "armed_vacation",
     "armed_custom_bypass",
 )
+
+CONF_MAP_CAMERA = "map_camera"
+CONF_MAP_IMAGE = "map_image"
+CONF_POSITIONS = "positions"
+CONF_X = "x"
+CONF_Y = "y"
+
+STATIC_URL_BASE = "/departure_guardian_static"
+MAP_CARD_FILENAME = "departure-guardian-map-card.js"

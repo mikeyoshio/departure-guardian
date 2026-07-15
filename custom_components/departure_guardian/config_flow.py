@@ -11,7 +11,10 @@ from .const import (
     CONF_ENTITY_ID,
     CONF_KIND,
     CONF_LABEL,
+    CONF_MAP_CAMERA,
+    CONF_MAP_IMAGE,
     CONF_NOTIFY_SERVICE,
+    CONF_POSITIONS,
     CONF_PROBLEM_STATE,
     CONF_THRESHOLD,
     CONF_WATCHED_ENTITIES,
@@ -21,7 +24,8 @@ from .const import (
     KIND_BINARY,
     KIND_POWER,
 )
-from .discovery import discover_candidates
+from .discovery import discover_candidates, discover_map_cameras
+from .map_storage import async_save_map_upload
 
 
 class DepartureGuardianConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -59,11 +63,50 @@ class DepartureGuardianOptionsFlow(config_entries.OptionsFlow):
     def __init__(self, config_entry) -> None:
         self._entry = config_entry
         self._watched = list(config_entry.options.get(CONF_WATCHED_ENTITIES, []))
+        self._map_camera = config_entry.options.get(CONF_MAP_CAMERA)
+        self._map_image = config_entry.options.get(CONF_MAP_IMAGE)
+        self._positions = dict(config_entry.options.get(CONF_POSITIONS, {}))
 
     async def async_step_init(self, user_input=None):
         return self.async_show_menu(
             step_id="init",
-            menu_options=["discover", "add_entity", "remove_entity", "finish"],
+            menu_options=[
+                "discover",
+                "add_entity",
+                "remove_entity",
+                "set_map",
+                "finish",
+            ],
+        )
+
+    async def async_step_set_map(self, user_input=None):
+        map_candidates = discover_map_cameras(self.hass)
+
+        if user_input is not None:
+            if user_input.get("map_upload"):
+                self._map_image = await async_save_map_upload(
+                    self.hass, self._entry.entry_id, user_input["map_upload"]
+                )
+                self._map_camera = None
+            elif user_input.get(CONF_MAP_CAMERA):
+                self._map_camera = user_input[CONF_MAP_CAMERA]
+                self._map_image = None
+            return await self.async_step_init()
+
+        schema = vol.Schema(
+            {
+                vol.Optional(CONF_MAP_CAMERA): selector.EntitySelector(
+                    selector.EntitySelectorConfig(include_entities=map_candidates)
+                ),
+                vol.Optional("map_upload"): selector.FileSelector(
+                    selector.FileSelectorConfig(accept="image/png")
+                ),
+            }
+        )
+        return self.async_show_form(
+            step_id="set_map",
+            data_schema=schema,
+            description_placeholders={"count": str(len(map_candidates))},
         )
 
     async def async_step_discover(self, user_input=None):
@@ -188,5 +231,8 @@ class DepartureGuardianOptionsFlow(config_entries.OptionsFlow):
                 CONF_ALARM_ENTITY: self._entry.options[CONF_ALARM_ENTITY],
                 CONF_NOTIFY_SERVICE: self._entry.options[CONF_NOTIFY_SERVICE],
                 CONF_WATCHED_ENTITIES: self._watched,
+                CONF_MAP_CAMERA: self._map_camera,
+                CONF_MAP_IMAGE: self._map_image,
+                CONF_POSITIONS: self._positions,
             },
         )

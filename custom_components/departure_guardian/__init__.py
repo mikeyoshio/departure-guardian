@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
 from homeassistant.helpers.event import async_track_state_change_event
@@ -11,25 +14,35 @@ from .const import (
     CONF_ENTITY_ID,
     CONF_KIND,
     CONF_LABEL,
+    CONF_MAP_CAMERA,
+    CONF_MAP_IMAGE,
     CONF_NOTIFY_SERVICE,
+    CONF_POSITIONS,
     CONF_PROBLEM_STATE,
     CONF_THRESHOLD,
     CONF_WATCHED_ENTITIES,
     DOMAIN,
     KIND_BINARY,
     KIND_POWER,
+    MAP_CARD_FILENAME,
+    STATIC_URL_BASE,
 )
+from .services import async_setup_services
 
 PLATFORMS = ["binary_sensor"]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
+    await _async_register_frontend_resources(hass)
+
     coordinator = DepartureGuardianCoordinator(hass, entry)
     hass.data[DOMAIN][entry.entry_id] = coordinator
     coordinator.async_start()
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
+
+    async_setup_services(hass)
     return True
 
 
@@ -43,12 +56,31 @@ async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> Non
     await hass.config_entries.async_reload(entry.entry_id)
 
 
+async def _async_register_frontend_resources(hass: HomeAssistant) -> None:
+    if hass.data[DOMAIN].get("_frontend_registered"):
+        return
+    hass.data[DOMAIN]["_frontend_registered"] = True
+
+    www_path = Path(__file__).parent / "www"
+    try:
+        from homeassistant.components.http import StaticPathConfig
+
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig(STATIC_URL_BASE, str(www_path), False)]
+        )
+    except ImportError:
+        hass.http.register_static_path(STATIC_URL_BASE, str(www_path), False)
+
+    add_extra_js_url(hass, f"{STATIC_URL_BASE}/{MAP_CARD_FILENAME}")
+
+
 class DepartureGuardianCoordinator:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.hass = hass
         self.entry = entry
-        self.last_issues: list[str] = []
-        self._unsub = None
+        self.statuses: list[dict] = []
+        self._unsub_alarm = None
+        self._unsub_watched = None
         self._listeners: list[callback] = []
 
     @property
@@ -63,6 +95,22 @@ class DepartureGuardianCoordinator:
     def watched_entities(self) -> list[dict]:
         return self.entry.options.get(CONF_WATCHED_ENTITIES, [])
 
+    @property
+    def map_camera(self) -> str | None:
+        return self.entry.options.get(CONF_MAP_CAMERA)
+
+    @property
+    def map_image(self) -> str | None:
+        return self.entry.options.get(CONF_MAP_IMAGE)
+
+    @property
+    def positions(self) -> dict:
+        return self.entry.options.get(CONF_POSITIONS, {})
+
+    @property
+    def last_issues(self) -> list[str]:
+        return [s["detail"] for s in self.statuses if s["problem"]]
+
     def async_add_listener(self, callback_fn) -> None:
         self._listeners.append(callback_fn)
 
@@ -74,13 +122,29 @@ class DepartureGuardianCoordinator:
             listener()
 
     def async_start(self) -> None:
-        self._unsub = async_track_state_change_event(
+        self._unsub_alarm = async_track_state_change_event(
             self.hass, [self.alarm_entity], self._handle_alarm_change
         )
+        watched_ids = [w[CONF_ENTITY_ID] for w in self.watched_entities]
+        if watched_ids:
+            self._unsub_watched = async_track_state_change_event(
+                self.hass, watched_ids, self._handle_watched_change
+            )
+        self._refresh_statuses()
 
     def async_stop(self) -> None:
-        if self._unsub:
-            self._unsub()
+        if self._unsub_alarm:
+            self._unsub_alarm()
+        if self._unsub_watched:
+            self._unsub_watched()
+
+    @callback
+    def _handle_watched_change(self, event: Event[EventStateChangedData]) -> None:
+        self._refresh_statuses()
+        self._notify_listeners()
+
+    def _refresh_statuses(self) -> None:
+        self.statuses = self._evaluate()
 
     @callback
     def _handle_alarm_change(self, event: Event[EventStateChangedData]) -> None:
@@ -94,9 +158,9 @@ class DepartureGuardianCoordinator:
         self.hass.async_create_task(self._check_and_notify())
 
     async def _check_and_notify(self) -> None:
-        issues = self._find_issues()
-        self.last_issues = issues
+        self._refresh_statuses()
         self._notify_listeners()
+        issues = self.last_issues
         if not issues:
             return
 
@@ -110,24 +174,37 @@ class DepartureGuardianCoordinator:
             blocking=False,
         )
 
-    def _find_issues(self) -> list[str]:
-        issues = []
+    def _evaluate(self) -> list[dict]:
+        statuses = []
         for watched in self.watched_entities:
-            state = self.hass.states.get(watched[CONF_ENTITY_ID])
-            if state is None:
-                continue
-            label = watched.get(CONF_LABEL, watched[CONF_ENTITY_ID])
+            entity_id = watched[CONF_ENTITY_ID]
+            state = self.hass.states.get(entity_id)
+            label = watched.get(CONF_LABEL, entity_id)
+            problem = False
+            detail = None
 
-            if watched[CONF_KIND] == KIND_BINARY:
-                problem_state = watched.get(CONF_PROBLEM_STATE, "on")
-                if state.state == problem_state:
-                    issues.append(f"{label} sigue en estado '{state.state}'")
-            elif watched[CONF_KIND] == KIND_POWER:
-                threshold = float(watched.get(CONF_THRESHOLD, 5.0))
-                try:
-                    value = float(state.state)
-                except (TypeError, ValueError):
-                    continue
-                if value > threshold:
-                    issues.append(f"{label} consumiendo {value:.0f} W")
-        return issues
+            if state is not None:
+                if watched[CONF_KIND] == KIND_BINARY:
+                    problem_state = watched.get(CONF_PROBLEM_STATE, "on")
+                    if state.state == problem_state:
+                        problem = True
+                        detail = f"{label} sigue en estado '{state.state}'"
+                elif watched[CONF_KIND] == KIND_POWER:
+                    threshold = float(watched.get(CONF_THRESHOLD, 5.0))
+                    try:
+                        value = float(state.state)
+                    except (TypeError, ValueError):
+                        value = None
+                    if value is not None and value > threshold:
+                        problem = True
+                        detail = f"{label} consumiendo {value:.0f} W"
+
+            statuses.append(
+                {
+                    "entity_id": entity_id,
+                    "label": label,
+                    "problem": problem,
+                    "detail": detail,
+                }
+            )
+        return statuses

@@ -18,6 +18,7 @@
           "discover": "Suggest entities automatically",
           "add_entity": "Add watched entity",
           "remove_entity": "Remove watched entity",
+          "set_map": "Set up floor plan",
           "finish": "Save and exit"
         }
       },
@@ -43,6 +44,14 @@
         "title": "Remove watched entity",
         "data": {
           "entity": "Entity to remove"
+        }
+      },
+      "set_map": {
+        "title": "Set up floor plan ({count} map cameras detected)",
+        "description": "Pick your vacuum's map camera (if your integration exposes one) or upload a PNG of your floor plan.",
+        "data": {
+          "map_camera": "Detected map camera",
+          "map_upload": "Upload floor plan (PNG)"
         }
       }
     }
