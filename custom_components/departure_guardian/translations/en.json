@@ -1,0 +1,41 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Departure Guardian",
+        "data": {
+          "alarm_entity": "Alarm entity",
+          "notify_service": "Notify service (e.g. mobile_app_your_phone)"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Departure Guardian",
+        "menu_options": {
+          "add_entity": "Add watched entity",
+          "remove_entity": "Remove watched entity",
+          "finish": "Save and exit"
+        }
+      },
+      "add_entity": {
+        "title": "Add watched entity",
+        "data": {
+          "entity_id": "Entity",
+          "kind": "Kind (binary = on/off sensor, power = power draw in W)",
+          "label": "Name used in notifications",
+          "problem_state": "State considered a problem (for kind binary)",
+          "threshold": "Power threshold in W (for kind power)"
+        }
+      },
+      "remove_entity": {
+        "title": "Remove watched entity",
+        "data": {
+          "entity": "Entity to remove"
+        }
+      }
+    }
+  }
+}

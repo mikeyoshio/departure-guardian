@@ -1,0 +1,41 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Departure Guardian",
+        "data": {
+          "alarm_entity": "Entidad de alarma",
+          "notify_service": "Servicio de notificación (ej: mobile_app_tu_movil)"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Departure Guardian",
+        "menu_options": {
+          "add_entity": "Añadir entidad a vigilar",
+          "remove_entity": "Quitar entidad vigilada",
+          "finish": "Guardar y salir"
+        }
+      },
+      "add_entity": {
+        "title": "Añadir entidad a vigilar",
+        "data": {
+          "entity_id": "Entidad",
+          "kind": "Tipo (binary = sensor on/off, power = consumo en W)",
+          "label": "Nombre para las notificaciones",
+          "problem_state": "Estado que se considera problema (para tipo binary)",
+          "threshold": "Umbral de consumo en W (para tipo power)"
+        }
+      },
+      "remove_entity": {
+        "title": "Quitar entidad vigilada",
+        "data": {
+          "entity": "Entidad a quitar"
+        }
+      }
+    }
+  }
+}
